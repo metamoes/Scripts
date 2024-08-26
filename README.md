@@ -27,10 +27,10 @@ This playbook will install and configure the following:
 
 ## Usage
 
-1. Save the playbook as `install_dev_environment.yml`
+1. Save the playbook as `linux-install.yml`
 2. Open a terminal and navigate to the directory containing the playbook
 3. Run the following command:
 
    ```
-   ansible-playbook install_dev_environment.yml
+   ansible-playbook linux-install.yml
    ```
