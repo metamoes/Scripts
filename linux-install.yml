@@ -35,6 +35,18 @@
         name: vivaldi-stable
         state: present
 
+    # Synology Drive
+    - name: Download Synology Drive
+      get_url:
+        url: "https://global.download.synology.com/download/Utility/SynologyDriveClient/{{ synology_drive_version }}/Ubuntu/Installer/x86_64/synology-drive-client-{{ synology_drive_version }}.x86_64.deb"
+        dest: "/tmp/synology-drive-client.deb"
+        mode: '0644'
+
+    - name: Install Synology Drive
+      apt:
+        deb: "/tmp/synology-drive-client.deb"
+        state: present
+
     # Discord
     - name: Add Discord repository
       apt_repository:
