@@ -28,6 +28,9 @@ This playbook will install and configure the following:
 8. **File Synchronization**:
    - Synology Drive
 
+9. **Music Streaming**:
+   - Spotify
+
 ## Usage
 
 1. Save the playbook as `linux-install.yml`
