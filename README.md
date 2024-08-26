@@ -24,6 +24,9 @@ This playbook will install and configure the following:
    - CLion
    - PyCharm Professional
    - IntelliJ IDEA Ultimate
+     
+8. **File Synchronization**:
+   - Synology Drive
 
 ## Usage
 
