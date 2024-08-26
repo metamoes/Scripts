@@ -58,6 +58,25 @@
         name: discord
         state: present
 
+     # Spotify
+    - name: Add Spotify repository signing key
+      apt_key:
+        url: https://download.spotify.com/debian/pubkey_7A3A762FAFD4A51F.gpg
+        state: present
+
+    - name: Add Spotify repository
+      apt_repository:
+        repo: deb http://repository.spotify.com stable non-free
+        state: present
+        filename: spotify
+
+    - name: Install Spotify
+      apt:
+        name: spotify-client
+        state: present
+        update_cache: yes
+
+
     # Steam
     - name: Install Steam
       apt:
