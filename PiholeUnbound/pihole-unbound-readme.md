@@ -35,6 +35,30 @@ This setup uses the `cbcrowe/pihole-unbound:latest` image to create a Pi-hole in
 - `REV_SERVER_DOMAIN`: Reverse DNS domain
 - `REV_SERVER_CIDR`: Reverse DNS CIDR range
 
+## Environment Variables Suggestions/Defaults
+
+Here are the current settings for the environment variables:
+
+```
+FTLCONF_LOCAL_IPV4=192.168.50.206
+TZ=America/US
+WEBPASSWORD=Password
+REV_SERVER=false
+REV_SERVER_DOMAIN=local
+REV_SERVER_TARGET=192.168.50.1
+REV_SERVER_CIDR=192.168.50.0/16
+HOSTNAME=pihole
+DOMAIN_NAME=pihole.local
+PIHOLE_WEBPORT=8081
+WEBTHEME=default-light
+```
+
+IMPORTANT REMINDERS:
+1. Change the WEBPASSWORD to a strong, unique password before deploying.
+2. Verify all other settings to ensure they match your network configuration.
+3. The PIHOLE_WEBPORT is set to 8081. Make sure this port is available on your host system.
+
+
 ## Ports
 
 - 4433: HTTPS
