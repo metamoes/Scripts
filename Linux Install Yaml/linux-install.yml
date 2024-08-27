@@ -17,6 +17,12 @@
       apt:
         name: apt-file
         state: present
+        
+    # Python3-pip installation
+    - name: Install python3-pip
+      apt:
+        name: python3-pip
+        state: present
 
     # Vivaldi Browser
     - name: Add Vivaldi repository
