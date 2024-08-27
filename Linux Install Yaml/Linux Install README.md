@@ -2,6 +2,7 @@ This playbook will install and configure the following:
 
 1. **System Tools**:
    - apt-file (for managing APT packages)
+   - python3-pip
 
 2. **Web Browsers**:
    - Vivaldi
