@@ -9,7 +9,7 @@ Welcome to Metamoes' Script Collection repository. This repository contains a va
 An Ansible playbook for setting up a Linux system with various tools and applications.
 
 **Key Features**:
-- System Tools installation (e.g., apt-file)
+- System Tools installation (e.g., apt-file, python-pip3)
 - Web Browsers (Vivaldi)
 - Communication Tools (Discord)
 - Gaming (Steam)
