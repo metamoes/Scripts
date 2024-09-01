@@ -10,10 +10,10 @@ An Ansible playbook for setting up a Linux system with various tools and applica
 
 **Key Features**:
 - System Tools installation (e.g., apt-file, python-pip3)
-- Web Browsers (Vivaldi)
+- Web Browsers (Firefox)
 - Communication Tools (Discord)
 - Gaming (Steam)
-- Email Client (BlueMail)
+- Email Client (Thunderbird)
 - Graphics and CUDA setup
 - Development Tools (JetBrains suite)
 - File Synchronization (Synology Drive)
