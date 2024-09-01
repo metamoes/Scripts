@@ -11,13 +11,12 @@ This playbook will install and configure the following:
 
 3. **Communication Tools**:
    - Discord
-   - Thunderbird (email client)
 
 4. **Gaming**:
    - Steam
 
 5. **Email Client**:
-   - BlueMail
+   - Thunderbird
 
 6. **Graphics and CUDA**:
    - NVIDIA GPU drivers
