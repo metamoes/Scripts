@@ -1,3 +1,5 @@
+# Linux Development Environment Setup
+
 This playbook will install and configure the following:
 
 1. **System Tools**:
@@ -5,10 +7,11 @@ This playbook will install and configure the following:
    - python3-pip
 
 2. **Web Browsers**:
-   - Vivaldi
+   - Firefox
 
 3. **Communication Tools**:
    - Discord
+   - Thunderbird (email client)
 
 4. **Gaming**:
    - Steam
@@ -25,7 +28,7 @@ This playbook will install and configure the following:
    - CLion
    - PyCharm Professional
    - IntelliJ IDEA Ultimate
-     
+
 8. **File Synchronization**:
    - Synology Drive
 
@@ -37,7 +40,8 @@ This playbook will install and configure the following:
 1. Save the playbook as `linux-install.yml`
 2. Open a terminal and navigate to the directory containing the playbook
 3. Run the following command:
-
    ```
    ansible-playbook linux-install.yml
    ```
+
+Note: This playbook requires sudo privileges to install software and make system changes.
