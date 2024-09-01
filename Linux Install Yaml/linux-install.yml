@@ -24,21 +24,16 @@
         name: python3-pip
         state: present
 
-    # Vivaldi Browser
-    - name: Add Vivaldi repository
-      apt_repository:
-        repo: deb [arch=amd64 signed-by=/usr/share/keyrings/vivaldi-browser.gpg] https://repo.vivaldi.com/stable/deb/ stable main
-        state: present
-
-    - name: Add Vivaldi GPG key
-      apt_key:
-        url: https://repo.vivaldi.com/stable/linux_signing_key.pub
-        keyring: /usr/share/keyrings/vivaldi-browser.gpg
-        state: present
-
-    - name: Install Vivaldi browser
+    # Firefox installation
+    - name: Install Firefox
       apt:
-        name: vivaldi-stable
+        name: firefox
+        state: present
+
+    # Thunderbird installation
+    - name: Install Thunderbird
+      apt:
+        name: thunderbird
         state: present
 
     # Synology Drive
@@ -81,7 +76,6 @@
         name: spotify-client
         state: present
         update_cache: yes
-
 
     # Steam
     - name: Install Steam
