@@ -83,22 +83,6 @@
         name: steam
         state: present
 
-    # BlueMail
-    - name: Add BlueMail repository
-      apt_repository:
-        repo: deb https://download.bluemail.me/BlueMail/deb/stable main
-        state: present
-
-    - name: Add BlueMail GPG key
-      apt_key:
-        url: https://download.bluemail.me/BlueMail/gpg/Key.gpg
-        state: present
-
-    - name: Install BlueMail
-      apt:
-        name: bluemail
-        state: present
-
     # NVIDIA GPU drivers
     - name: Add NVIDIA GPU PPA
       apt_repository:
