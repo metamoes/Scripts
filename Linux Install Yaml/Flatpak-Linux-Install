@@ -1,0 +1,155 @@
+---
+- name: Install comprehensive development environment on Linux
+  hosts: localhost
+  become: yes  # This allows the playbook to run with sudo privileges
+
+  vars:
+    jetbrains_toolbox_version: 1.28.1.15219
+    jetbrains_toolbox_download_url: "https://download.jetbrains.com/toolbox/jetbrains-toolbox-{{ jetbrains_toolbox_version }}.tar.gz"
+    jetbrains_toolbox_install_dir: "/opt/jetbrains-toolbox"
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Ensure apt-file is installed
+      apt:
+        name: apt-file
+        state: present
+        
+    - name: Install python3-pip
+      apt:
+        name: python3-pip
+        state: present
+
+    # Install and configure Flatpak
+    - name: Install Flatpak
+      apt:
+        name: flatpak
+        state: present
+
+    - name: Add Flathub repository
+      flatpak_remote:
+        name: flathub
+        state: present
+        flatpakrepo_url: https://flathub.org/repo/flathub.flatpakrepo
+
+    # Install applications using Flatpak
+    - name: Install Firefox via Flatpak
+      flatpak:
+        name: org.mozilla.firefox
+        state: present
+
+    - name: Install Thunderbird via Flatpak
+      flatpak:
+        name: org.mozilla.Thunderbird
+        state: present
+
+    - name: Install Discord via Flatpak
+      flatpak:
+        name: com.discordapp.Discord
+        state: present
+
+    - name: Install Spotify via Flatpak
+      flatpak:
+        name: com.spotify.Client
+        state: present
+
+    - name: Install Steam via Flatpak
+      flatpak:
+        name: com.valvesoftware.Steam
+        state: present
+
+    # Synology Drive (not available as Flatpak)
+    - name: Download Synology Drive
+      get_url:
+        url: "https://global.download.synology.com/download/Utility/SynologyDriveClient/{{ synology_drive_version }}/Ubuntu/Installer/x86_64/synology-drive-client-{{ synology_drive_version }}.x86_64.deb"
+        dest: "/tmp/synology-drive-client.deb"
+        mode: '0644'
+
+    - name: Install Synology Drive
+      apt:
+        deb: "/tmp/synology-drive-client.deb"
+        state: present
+
+    # NVIDIA GPU drivers (not available as Flatpak)
+    - name: Add NVIDIA GPU PPA
+      apt_repository:
+        repo: ppa:graphics-drivers/ppa
+        state: present
+
+    - name: Update apt cache after adding NVIDIA PPA
+      apt:
+        update_cache: yes
+
+    - name: Install NVIDIA drivers
+      apt:
+        name: 
+          - nvidia-driver-latest
+          - nvidia-settings
+        state: present
+
+    - name: Install CUDA toolkit
+      apt:
+        name: nvidia-cuda-toolkit
+        state: present
+
+    # JetBrains Toolbox (not available as Flatpak)
+    - name: Install dependencies for JetBrains Toolbox
+      apt:
+        name:
+          - libfuse2
+          - fuse
+        state: present
+
+    - name: Create JetBrains Toolbox installation directory
+      file:
+        path: "{{ jetbrains_toolbox_install_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Download JetBrains Toolbox
+      get_url:
+        url: "{{ jetbrains_toolbox_download_url }}"
+        dest: "/tmp/jetbrains-toolbox.tar.gz"
+        mode: '0644'
+
+    - name: Extract JetBrains Toolbox
+      unarchive:
+        src: "/tmp/jetbrains-toolbox.tar.gz"
+        dest: "{{ jetbrains_toolbox_install_dir }}"
+        extra_opts: [--strip-components=1]
+        remote_src: yes
+
+    - name: Create symbolic link for JetBrains Toolbox
+      file:
+        src: "{{ jetbrains_toolbox_install_dir }}/jetbrains-toolbox"
+        dest: "/usr/local/bin/jetbrains-toolbox"
+        state: link
+
+    - name: Run JetBrains Toolbox to start installation
+      command: /usr/local/bin/jetbrains-toolbox
+      async: 300
+      poll: 0
+      become: no
+
+    - name: Wait for JetBrains Toolbox to initialize (30 seconds)
+      pause:
+        seconds: 30
+
+    - name: Install CLion
+      command: /usr/local/bin/jetbrains-toolbox install clion
+      become: no
+
+    - name: Install PyCharm Professional
+      command: /usr/local/bin/jetbrains-toolbox install pycharm-professional
+      become: no
+
+    - name: Install IntelliJ IDEA Ultimate
+      command: /usr/local/bin/jetbrains-toolbox install intellij-idea-ultimate
+      become: no
+
+    # Final system reboot
+    - name: Reboot the system
+      reboot:
