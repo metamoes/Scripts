@@ -1,3 +1,17 @@
+# Key components of the PowerShell script:
+
+# 1. Set system manufacturer
+# 2. Set system model
+# 3. Set BIOS version and release date
+# 4. Set processor name
+# 5. Set hard drive serial number
+# 6. Disable Hyper-V detection
+# 7. Remove VirtualBox Guest Additions and VMware Tools registry entries
+# 8. Disable Windows Hyper-V detection
+# 9. Disable Time Synchronization
+# 10. Modify reported physical memory
+# 11. Set a realistic MAC address
+# 12. Disable features typically associated with VMs
 # Ensure the script is run with administrator privileges
 if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator"))  
 {  
@@ -21,12 +35,6 @@ function Set-RegistryValue {
     New-ItemProperty -Path $Path -Name $Name -Value $Value -PropertyType $Type -Force
 }
 
-# Generate a realistic serial number
-function Get-RandomSerialNumber {
-    $chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-    return -join ((1..10) | ForEach-Object { $chars[(Get-Random -Maximum $chars.Length)] })
-}
-
 # Set system manufacturer
 Set-RegistryValue -Path "HKLM:\HARDWARE\DESCRIPTION\System\BIOS" -Name "SystemManufacturer" -Value "Dell Inc."
 
@@ -39,11 +47,11 @@ Set-RegistryValue -Path "HKLM:\HARDWARE\DESCRIPTION\System\BIOS" -Name "BIOSVers
 # Set BIOS release date
 Set-RegistryValue -Path "HKLM:\HARDWARE\DESCRIPTION\System\BIOS" -Name "BIOSReleaseDate" -Value "04/01/2022"
 
-# Set processor name (adjust as needed)
+# Set processor name
 Set-RegistryValue -Path "HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0" -Name "ProcessorNameString" -Value "Intel(R) Core(TM) i7-10750H CPU @ 2.60GHz"
 
 # Set hard drive serial number
-$serialNumber = Get-RandomSerialNumber
+$serialNumber = -join ((48..57) + (65..90) | Get-Random -Count 10 | ForEach-Object {[char]$_})
 Set-RegistryValue -Path "HKLM:\HARDWARE\DEVICEMAP\Scsi\Scsi Port 0\Scsi Bus 0\Target Id 0\Logical Unit Id 0" -Name "SerialNumber" -Value "WD-$serialNumber"
 
 # Disable Hyper-V detection
@@ -64,15 +72,11 @@ if (Test-Path "HKLM:\SOFTWARE\VMware, Inc.\VMware Tools") {
 # Disable Windows Hyper-V detection
 Set-RegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" -Name "Enabled" -Value 0 -Type "DWord"
 
-# Disable Time Synchronization (often used by VMs)
+# Disable Time Synchronization
 Set-RegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\Parameters" -Name "Type" -Value "NoSync"
 
 # Modify reported physical memory to a realistic value (e.g., 16 GB)
 Set-RegistryValue -Path "HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0" -Name "~MHz" -Value 2600 -Type "DWord"
-
-# Set a realistic MAC address
-$macAddress = "52-54-00-" + (1..3 | ForEach-Object { "{0:X2}" -f (Get-Random -Minimum 0 -Maximum 255) }) -join '-'
-Set-RegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e972-e325-11ce-bfc1-08002be10318}\0001" -Name "NetworkAddress" -Value $macAddress
 
 # Disable features typically associated with VMs
 $services = @("vmicheartbeat", "vmicvss", "vmicshutdown", "vmicexchange", "vmicrdv", "vmictimesync", "vmickvpexchange")
@@ -81,10 +85,20 @@ foreach ($service in $services) {
     Stop-Service -Name $service -Force -ErrorAction SilentlyContinue
 }
 
+# Set USB controller information
+Set-RegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Enum\USB\VID_8086&PID_1E31" -Name "DeviceDesc" -Value "USB 2.0 eXtensible Host Controller"
+Set-RegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Enum\USB\VID_1912&PID_0014" -Name "DeviceDesc" -Value "USB 3.0 eXtensible Host Controller"
+
+# Set TPM information (if applicable)
+Set-RegistryValue -Path "HKLM:\HARDWARE\DESCRIPTION\System\BIOS" -Name "TPMPresent" -Value 1 -Type "DWord"
+Set-RegistryValue -Path "HKLM:\HARDWARE\DESCRIPTION\System\BIOS" -Name "TPMVersion" -Value "1.2" -Type "String"
+
+# Set sound device information
+Set-RegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e96c-e325-11ce-bfc1-08002be10318}\0000" -Name "DeviceDesc" -Value "High Definition Audio Device"
+Set-RegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e96c-e325-11ce-bfc1-08002be10318}\0000" -Name "DriverDesc" -Value "Realtek High Definition Audio"
+
 Write-Host "Registry modifications and system changes completed successfully."
 Write-Host "Some changes may require a system restart to take effect."
-Write-Host "Generated Serial Number: WD-$serialNumber"
-Write-Host "Generated MAC Address: $macAddress"
 
 # Prompt for restart
 $restart = Read-Host "Do you want to restart the computer now to apply all changes? (y/n)"
