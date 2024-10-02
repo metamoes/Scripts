@@ -1,17 +1,3 @@
-# Key components of the PowerShell script:
-
-# 1. Set system manufacturer
-# 2. Set system model
-# 3. Set BIOS version and release date
-# 4. Set processor name
-# 5. Set hard drive serial number
-# 6. Disable Hyper-V detection
-# 7. Remove VirtualBox Guest Additions and VMware Tools registry entries
-# 8. Disable Windows Hyper-V detection
-# 9. Disable Time Synchronization
-# 10. Modify reported physical memory
-# 11. Set a realistic MAC address
-# 12. Disable features typically associated with VMs
 # Ensure the script is run with administrator privileges
 if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator"))  
 {  
@@ -29,99 +15,141 @@ function Set-RegistryValue {
         [string]$Type = "String"
     )
     
-    if (!(Test-Path $Path)) {
-        New-Item -Path $Path -Force | Out-Null
+    try {
+        if (!(Test-Path $Path)) {
+            New-Item -Path $Path -Force | Out-Null
+        }
+        New-ItemProperty -Path $Path -Name $Name -Value $Value -PropertyType $Type -Force | Out-Null
+        return $true
+    } catch {
+        Write-Host "Error setting registry value: $Path\$Name"
+        return $false
     }
-    New-ItemProperty -Path $Path -Name $Name -Value $Value -PropertyType $Type -Force
 }
 
+# Initialize success flag
+$allSuccessful = $true
+
 # Set system manufacturer
-Set-RegistryValue -Path "HKLM:\HARDWARE\DESCRIPTION\System\BIOS" -Name "SystemManufacturer" -Value "Dell Inc."
+$allSuccessful = $allSuccessful -and (Set-RegistryValue -Path "HKLM:\HARDWARE\DESCRIPTION\System\BIOS" -Name "SystemManufacturer" -Value "Dell Inc.")
 
 # Set system model
-Set-RegistryValue -Path "HKLM:\HARDWARE\DESCRIPTION\System\BIOS" -Name "SystemProductName" -Value "Inspiron 15 7000"
+$allSuccessful = $allSuccessful -and (Set-RegistryValue -Path "HKLM:\HARDWARE\DESCRIPTION\System\BIOS" -Name "SystemProductName" -Value "Inspiron 15 7000")
 
 # Set BIOS version
-Set-RegistryValue -Path "HKLM:\HARDWARE\DESCRIPTION\System\BIOS" -Name "BIOSVersion" -Value "2.17.1246"
+$allSuccessful = $allSuccessful -and (Set-RegistryValue -Path "HKLM:\HARDWARE\DESCRIPTION\System\BIOS" -Name "BIOSVersion" -Value "2.17.1246")
 
 # Set BIOS release date
-Set-RegistryValue -Path "HKLM:\HARDWARE\DESCRIPTION\System\BIOS" -Name "BIOSReleaseDate" -Value "04/01/2022"
+$allSuccessful = $allSuccessful -and (Set-RegistryValue -Path "HKLM:\HARDWARE\DESCRIPTION\System\BIOS" -Name "BIOSReleaseDate" -Value "04/01/2022")
 
 # Set processor name
-Set-RegistryValue -Path "HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0" -Name "ProcessorNameString" -Value "Intel(R) Core(TM) i7-10750H CPU @ 2.60GHz"
+$allSuccessful = $allSuccessful -and (Set-RegistryValue -Path "HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0" -Name "ProcessorNameString" -Value "Intel(R) Core(TM) i7-10750H CPU @ 2.60GHz")
 
 # Set hard drive serial number
 $serialNumber = -join ((48..57) + (65..90) | Get-Random -Count 10 | ForEach-Object {[char]$_})
-Set-RegistryValue -Path "HKLM:\HARDWARE\DEVICEMAP\Scsi\Scsi Port 0\Scsi Bus 0\Target Id 0\Logical Unit Id 0" -Name "SerialNumber" -Value "WD-$serialNumber"
+$allSuccessful = $allSuccessful -and (Set-RegistryValue -Path "HKLM:\HARDWARE\DEVICEMAP\Scsi\Scsi Port 0\Scsi Bus 0\Target Id 0\Logical Unit Id 0" -Name "SerialNumber" -Value "WD-$serialNumber")
 
 # Disable Hyper-V detection
-Set-RegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\HyperV" -Name "HyperVisorLoadOptions" -Value 1 -Type "DWord"
+$allSuccessful = $allSuccessful -and (Set-RegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\HyperV" -Name "HyperVisorLoadOptions" -Value 1 -Type "DWord")
 
 # Remove VirtualBox Guest Additions if present
 if (Test-Path "HKLM:\SOFTWARE\Oracle\VirtualBox Guest Additions") {
-    Remove-Item -Path "HKLM:\SOFTWARE\Oracle\VirtualBox Guest Additions" -Recurse
-    Write-Host "Removed VirtualBox Guest Additions registry entries."
+    try {
+        Remove-Item -Path "HKLM:\SOFTWARE\Oracle\VirtualBox Guest Additions" -Recurse
+        Write-Host "Removed VirtualBox Guest Additions registry entries."
+    } catch {
+        Write-Host "Failed to remove VirtualBox Guest Additions registry entries."
+        $allSuccessful = $false
+    }
 }
 
 # Remove VMware Tools if present
 if (Test-Path "HKLM:\SOFTWARE\VMware, Inc.\VMware Tools") {
-    Remove-Item -Path "HKLM:\SOFTWARE\VMware, Inc.\VMware Tools" -Recurse
-    Write-Host "Removed VMware Tools registry entries."
+    try {
+        Remove-Item -Path "HKLM:\SOFTWARE\VMware, Inc.\VMware Tools" -Recurse
+        Write-Host "Removed VMware Tools registry entries."
+    } catch {
+        Write-Host "Failed to remove VMware Tools registry entries."
+        $allSuccessful = $false
+    }
 }
 
 # Disable Windows Hyper-V detection
-Set-RegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" -Name "Enabled" -Value 0 -Type "DWord"
+$allSuccessful = $allSuccessful -and (Set-RegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" -Name "Enabled" -Value 0 -Type "DWord")
 
 # Disable Time Synchronization
-Set-RegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\Parameters" -Name "Type" -Value "NoSync"
+$allSuccessful = $allSuccessful -and (Set-RegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\Parameters" -Name "Type" -Value "NoSync")
 
 # Modify reported physical memory to a realistic value (e.g., 16 GB)
-Set-RegistryValue -Path "HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0" -Name "~MHz" -Value 2600 -Type "DWord"
+$allSuccessful = $allSuccessful -and (Set-RegistryValue -Path "HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0" -Name "~MHz" -Value 2600 -Type "DWord")
 
 # Disable features typically associated with VMs
 $services = @("vmicheartbeat", "vmicvss", "vmicshutdown", "vmicexchange", "vmicrdv", "vmictimesync", "vmickvpexchange")
 foreach ($service in $services) {
-    Set-Service -Name $service -StartupType Disabled
-    Stop-Service -Name $service -Force -ErrorAction SilentlyContinue
+    try {
+        Set-Service -Name $service -StartupType Disabled
+        Stop-Service -Name $service -Force -ErrorAction Stop
+    } catch {
+        Write-Host "Failed to disable service: $service"
+        $allSuccessful = $false
+    }
 }
 
 # Disable synthetic timing for Hyper-V (if it exists)
-Set-RegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Services\TSC" -Name "Start" -Value 4 -Type "DWord"
+$allSuccessful = $allSuccessful -and (Set-RegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Services\TSC" -Name "Start" -Value 4 -Type "DWord")
 
 # Enable invariant TSC
-Set-RegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" -Name "GlobalTimerResolutionRequests" -Value 1 -Type "DWord"
-
-# Disable Hyper-V specific time synchronization
-$service = Get-Service -Name "vmictimesync" -ErrorAction SilentlyContinue
-if ($service) {
-    Stop-Service -Name "vmictimesync" -Force
-    Set-Service -Name "vmictimesync" -StartupType Disabled
-}
+$allSuccessful = $allSuccessful -and (Set-RegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" -Name "GlobalTimerResolutionRequests" -Value 1 -Type "DWord")
 
 # Disable Windows Time service
 $service = Get-Service -Name "W32Time" -ErrorAction SilentlyContinue
 if ($service) {
-    Stop-Service -Name "W32Time" -Force
-    Set-Service -Name "W32Time" -StartupType Disabled
+    try {
+        Stop-Service -Name "W32Time" -Force
+        Set-Service -Name "W32Time" -StartupType Disabled
+    } catch {
+        Write-Host "Failed to disable Windows Time service."
+        $allSuccessful = $false
+    }
 }
 
-# Set USB controller information
-Set-RegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Enum\USB\VID_8086&PID_1E31" -Name "DeviceDesc" -Value "USB 2.0 eXtensible Host Controller"
-Set-RegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Enum\USB\VID_1912&PID_0014" -Name "DeviceDesc" -Value "USB 3.0 eXtensible Host Controller"
+# Create a dialog box to show the result
+Add-Type -AssemblyName System.Windows.Forms
+$form = New-Object System.Windows.Forms.Form
+$form.Text = "VM Modification Result"
+$form.Size = New-Object System.Drawing.Size(300,150)
+$form.StartPosition = "CenterScreen"
 
-# Set TPM information (if applicable)
-Set-RegistryValue -Path "HKLM:\HARDWARE\DESCRIPTION\System\BIOS" -Name "TPMPresent" -Value 1 -Type "DWord"
-Set-RegistryValue -Path "HKLM:\HARDWARE\DESCRIPTION\System\BIOS" -Name "TPMVersion" -Value "1.2" -Type "String"
+$label = New-Object System.Windows.Forms.Label
+$label.Location = New-Object System.Drawing.Point(10,20)
+$label.Size = New-Object System.Drawing.Size(280,60)
+$label.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
 
-# Set sound device information
-Set-RegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e96c-e325-11ce-bfc1-08002be10318}\0000" -Name "DeviceDesc" -Value "High Definition Audio Device"
-Set-RegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e96c-e325-11ce-bfc1-08002be10318}\0000" -Name "DriverDesc" -Value "Realtek High Definition Audio"
+if ($allSuccessful) {
+    $label.Text = "All modifications were successful!"
+    $form.BackColor = [System.Drawing.Color]::LightGreen
+} else {
+    $label.Text = "Some modifications failed. Check the console for details."
+    $form.BackColor = [System.Drawing.Color]::LightCoral
+}
 
-Write-Host "Registry modifications and system changes completed successfully."
-Write-Host "Some changes may require a system restart to take effect."
+$okButton = New-Object System.Windows.Forms.Button
+$okButton.Location = New-Object System.Drawing.Point(100,80)
+$okButton.Size = New-Object System.Drawing.Size(75,23)
+$okButton.Text = "OK"
+$okButton.DialogResult = [System.Windows.Forms.DialogResult]::OK
+$form.AcceptButton = $okButton
 
-# Prompt for restart
-$restart = Read-Host "Do you want to restart the computer now to apply all changes? (y/n)"
-if ($restart -eq 'y') {
-    Restart-Computer -Force
+$form.Controls.Add($label)
+$form.Controls.Add($okButton)
+
+$result = $form.ShowDialog()
+
+if ($result -eq [System.Windows.Forms.DialogResult]::OK)
+{
+    # Prompt for restart
+    $restart = Read-Host "Do you want to restart the computer now to apply all changes? (y/n)"
+    if ($restart -eq 'y') {
+        Restart-Computer -Force
+    }
 }
