@@ -21,20 +21,21 @@ root = ET.fromstring(xml)
 cpu = root.find('./cpu')
 if cpu is None:
     cpu = ET.SubElement(root, 'cpu')
-cpu.set('mode', 'host-model')
+cpu.set('mode', 'host-passthrough')
 cpu.set('check', 'partial')
-topology = ET.SubElement(cpu, 'topology')
-topology.set('sockets', '1')
-topology.set('dies', '1')
-topology.set('cores', '6')
-topology.set('threads', '1')
+cpu.set('migratable', 'on')
+
+# Remove topology if it exists
+topology = cpu.find('topology')
+if topology is not None:
+    cpu.remove(topology)
 
 # Add CPU features
-features = cpu.find('feature[@name="vmx"]')
+features = cpu.find('feature[@name="svm"]')
 if features is None:
     features = ET.SubElement(cpu, 'feature')
     features.set('policy', 'require')
-    features.set('name', 'vmx')  # or 'svm' for AMD
+    features.set('name', 'svm')  # or 'svm' for AMD
 
 # Modify hard drive configuration
 devices = root.find('devices')
@@ -46,19 +47,55 @@ driver.set('io', 'native')
 source = disk.find('source')
 source.set('file', image_path)
 target = disk.find('target')
-target.set('bus', 'sata')
+target.set('bus', 'scsi')  # Changed from 'sata' to 'scsi'
 target.set('dev', 'sda')
 
-# Set disk size to 128GB
-subprocess.run(['qemu-img', 'resize', image_path, '128G'])
+# Add SCSI controller if not present
+scsi_controller = devices.find("./controller[@type='scsi'][@model='virtio-scsi']")
+if scsi_controller is None:
+    scsi_controller = ET.SubElement(devices, 'controller')
+    scsi_controller.set('type', 'scsi')
+    scsi_controller.set('model', 'virtio-scsi')
 
 # Add realistic hardware IDs
 def generate_serial():
     return ''.join(random.choices('0123456789ABCDEF', k=16))
 
-ET.SubElement(disk, 'serial').text = f"WD-{generate_serial()}"
-ET.SubElement(disk, 'vendor').text = 'Western Digital'
-ET.SubElement(disk, 'product').text = 'WD Blue 128GB'
+serial_elem = disk.find('serial')
+if serial_elem is None:
+    serial_elem = ET.SubElement(disk, 'serial')
+serial_elem.text = f"WD-{generate_serial()}"
+
+vendor_elem = disk.find('vendor')
+if vendor_elem is None:
+    vendor_elem = ET.SubElement(disk, 'vendor')
+vendor_elem.text = 'WDC'  # Shortened from 'Western Digital' to comply with 8-char limit
+
+product_elem = disk.find('product')
+if product_elem is None:
+    product_elem = ET.SubElement(disk, 'product')
+product_elem.text = 'WD1000DHTZ'  # Example WD model number
+
+# Set disk size to 128GB
+subprocess.run(['qemu-img', 'resize', image_path, '128G'])
+# Add realistic hardware IDs
+def generate_serial():
+    return ''.join(random.choices('0123456789ABCDEF', k=16))
+
+serial_elem = disk.find('serial')
+if serial_elem is None:
+    serial_elem = ET.SubElement(disk, 'serial')
+serial_elem.text = f"WD-{generate_serial()}"
+
+vendor_elem = disk.find('vendor')
+if vendor_elem is None:
+    vendor_elem = ET.SubElement(disk, 'vendor')
+vendor_elem.text = 'WDC'  # Shortened from 'Western Digital' to comply with 8-char limit
+
+product_elem = disk.find('product')
+if product_elem is None:
+    product_elem = ET.SubElement(disk, 'product')
+product_elem.text = 'WD1000DHTZ'  # Example WD model number
 
 # Add a realistic SMBIOS configuration
 os = root.find('os')
@@ -80,22 +117,46 @@ if loader is None:
     nvram = ET.SubElement(os, 'nvram')
     nvram.text = '/var/lib/libvirt/qemu/nvram/Windows_VARS.fd'
 
-# Add a TPM device
-tpm = ET.SubElement(devices, 'tpm')
-tpm.set('model', 'tpm-crb')
-backend = ET.SubElement(tpm, 'backend')
-backend.set('type', 'emulator')
-backend.set('version', '2.0')
+# Configure TPM 1.2
+tpm = devices.find('tpm')
+if tpm is None:
+    tpm = ET.SubElement(devices, 'tpm')
+tpm.set('model', 'tpm-tis')
+backend = tpm.find('backend')
+if backend is None:
+    backend = ET.SubElement(tpm, 'backend')
+backend.set('type', 'passthrough')
+backend.set('version', '1.2')
 
 # Add a sound device
 sound = ET.SubElement(devices, 'sound')
 sound.set('model', 'ich9')
 
-# Add USB controllers
-usb = ET.SubElement(devices, 'controller')
-usb.set('type', 'usb')
-usb.set('model', 'qemu-xhci')
-usb.set('ports', '15')
+# Remove existing USB controllers
+for usb_controller in devices.findall("./controller[@type='usb']"):
+    devices.remove(usb_controller)
+
+# Add USB 2.0 controller (EHCI)
+usb2_controller = ET.SubElement(devices, 'controller')
+usb2_controller.set('type', 'usb')
+usb2_controller.set('model', 'ehci')
+usb2_controller.set('index', '0')
+
+# Add USB 3.0 controller (xHCI)
+usb3_controller = ET.SubElement(devices, 'controller')
+usb3_controller.set('type', 'usb')
+usb3_controller.set('model', 'nec-xhci')
+usb3_controller.set('index', '1')
+
+# Add a few USB devices for realism (you can adjust as needed)
+for i in range(2):
+    usb_device = ET.SubElement(devices, 'hostdev')
+    usb_device.set('mode', 'subsystem')
+    usb_device.set('type', 'usb')
+    usb_device.set('managed', 'yes')
+    source = ET.SubElement(usb_device, 'source')
+    ET.SubElement(source, 'vendor', {'id': '0x046d'})  # Example: Logitech
+    ET.SubElement(source, 'product', {'id': f'0x{random.randint(0, 65535):04x}'})
 
 # Add a network interface with a realistic MAC address
 interface = ET.SubElement(devices, 'interface')
