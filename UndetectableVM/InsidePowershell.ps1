@@ -85,6 +85,26 @@ foreach ($service in $services) {
     Stop-Service -Name $service -Force -ErrorAction SilentlyContinue
 }
 
+# Disable synthetic timing for Hyper-V (if it exists)
+Set-RegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Services\TSC" -Name "Start" -Value 4 -Type "DWord"
+
+# Enable invariant TSC
+Set-RegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" -Name "GlobalTimerResolutionRequests" -Value 1 -Type "DWord"
+
+# Disable Hyper-V specific time synchronization
+$service = Get-Service -Name "vmictimesync" -ErrorAction SilentlyContinue
+if ($service) {
+    Stop-Service -Name "vmictimesync" -Force
+    Set-Service -Name "vmictimesync" -StartupType Disabled
+}
+
+# Disable Windows Time service
+$service = Get-Service -Name "W32Time" -ErrorAction SilentlyContinue
+if ($service) {
+    Stop-Service -Name "W32Time" -Force
+    Set-Service -Name "W32Time" -StartupType Disabled
+}
+
 # Set USB controller information
 Set-RegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Enum\USB\VID_8086&PID_1E31" -Name "DeviceDesc" -Value "USB 2.0 eXtensible Host Controller"
 Set-RegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Enum\USB\VID_1912&PID_0014" -Name "DeviceDesc" -Value "USB 3.0 eXtensible Host Controller"
