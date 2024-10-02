@@ -1,0 +1,112 @@
+import libvirt
+import xml.etree.ElementTree as ET
+import subprocess
+import random
+
+# Connect to libvirt
+conn = libvirt.open('qemu:///system')
+
+# Define the VM image path
+image_path = '/var/lib/libvirt/images/Windows.qcow2'
+
+# Create a domain object from the image
+domain = conn.lookupByName('Windows')  # Assuming 'Windows' is the VM name
+
+# Get the domain XML
+xml = domain.XMLDesc(0)
+root = ET.fromstring(xml)
+
+# Modify CPU configuration
+cpu = root.find('./cpu')
+if cpu is None:
+    cpu = ET.SubElement(root, 'cpu')
+cpu.set('mode', 'host-passthrough')
+topology = ET.SubElement(cpu, 'topology')
+topology.set('sockets', '1')
+topology.set('cores', '6')
+topology.set('threads', '1')
+
+# Add CPU features to mimic a real processor
+features = ET.SubElement(cpu, 'feature')
+features.set('policy', 'require')
+features.set('name', 'vmx')  # or 'svm' for AMD
+
+# Modify hard drive configuration
+devices = root.find('devices')
+disk = devices.find("./disk[@device='disk']")
+driver = disk.find('driver')
+driver.set('type', 'qcow2')
+source = disk.find('source')
+source.set('file', image_path)
+target = disk.find('target')
+target.set('bus', 'sata')
+target.set('dev', 'sda')
+
+# Set disk size to 128GB
+subprocess.run(['qemu-img', 'resize', image_path, '128G'])
+
+# Add realistic hardware IDs
+def generate_serial():
+    return ''.join(random.choices('0123456789ABCDEF', k=16))
+
+ET.SubElement(disk, 'serial').text = f"WD-{generate_serial()}"
+ET.SubElement(disk, 'vendor').text = 'Western Digital'
+ET.SubElement(disk, 'product').text = 'WD Blue 128GB'
+
+# Add a realistic SMBIOS configuration
+os = root.find('os')
+smbios = ET.SubElement(os, 'smbios')
+smbios.set('mode', 'sysinfo')
+
+sysinfo = ET.SubElement(root, 'sysinfo')
+sysinfo.set('type', 'smbios')
+
+bios = ET.SubElement(sysinfo, 'bios')
+ET.SubElement(bios, 'entry').set('name', 'vendor').text = 'American Megatrends Inc.'
+ET.SubElement(bios, 'entry').set('name', 'version').text = '2.17.1246'
+ET.SubElement(bios, 'entry').set('name', 'date').text = '04/01/2022'
+
+system = ET.SubElement(sysinfo, 'system')
+ET.SubElement(system, 'entry').set('name', 'manufacturer').text = 'Dell Inc.'
+ET.SubElement(system, 'entry').set('name', 'product').text = 'Inspiron 15 7000'
+ET.SubElement(system, 'entry').set('name', 'version').text = '1.0.0'
+ET.SubElement(system, 'entry').set('name', 'serial').text = generate_serial()
+ET.SubElement(system, 'entry').set('name', 'uuid').text = str(uuid.uuid4())
+
+# Modify BIOS settings
+os = root.find('os')
+boot = ET.SubElement(os, 'boot')
+boot.set('dev', 'hd')
+
+# Add a TPM device
+tpm = ET.SubElement(devices, 'tpm')
+tpm.set('model', 'tpm-tis')
+backend = ET.SubElement(tpm, 'backend')
+backend.set('type', 'emulator')
+backend.set('version', '2.0')
+
+# Add a sound device
+sound = ET.SubElement(devices, 'sound')
+sound.set('model', 'ich9')
+
+# Add USB controllers
+usb = ET.SubElement(devices, 'controller')
+usb.set('type', 'usb')
+usb.set('model', 'ehci')
+
+# Add a network interface with a realistic MAC address
+interface = ET.SubElement(devices, 'interface')
+interface.set('type', 'network')
+ET.SubElement(interface, 'source').set('network', 'default')
+ET.SubElement(interface, 'model').set('type', 'e1000e')
+mac = ET.SubElement(interface, 'mac')
+mac.set('address', f"52:54:00:{':'.join([f'{random.randint(0, 255):02x}' for _ in range(3)])}")
+
+# Save changes to the domain XML
+new_xml = ET.tostring(root).decode()
+conn.defineXML(new_xml)
+
+# Close the connection
+conn.close()
+
+print("QCOW2 file and VM configuration updated successfully.")
