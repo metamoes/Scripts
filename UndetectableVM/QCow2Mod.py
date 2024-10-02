@@ -148,15 +148,9 @@ usb3_controller.set('type', 'usb')
 usb3_controller.set('model', 'nec-xhci')
 usb3_controller.set('index', '1')
 
-# Add a few USB devices for realism (you can adjust as needed)
-for i in range(2):
-    usb_device = ET.SubElement(devices, 'hostdev')
-    usb_device.set('mode', 'subsystem')
-    usb_device.set('type', 'usb')
-    usb_device.set('managed', 'yes')
-    source = ET.SubElement(usb_device, 'source')
-    ET.SubElement(source, 'vendor', {'id': '0x046d'})  # Example: Logitech
-    ET.SubElement(source, 'product', {'id': f'0x{random.randint(0, 65535):04x}'})
+# Remove any existing USB device passthroughs
+for usb_device in devices.findall("./hostdev[@type='usb']"):
+    devices.remove(usb_device)
 
 # Add a network interface with a realistic MAC address
 interface = ET.SubElement(devices, 'interface')
